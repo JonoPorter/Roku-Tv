@@ -1,6 +1,6 @@
 /**
  * Roku TV
- * Download: https://github.com/JonoPorter/Roku-Tv
+ * Download: https://github.com/apwelsh/hubitat
  * Description:
  * This is a parent device handler designed to manage and control a Roku TV or Player connected to the same network 
  * as the Hubitat hub.  This device handler requires the installation of a child device handler available from
@@ -25,11 +25,11 @@ preferences {
     if (appRefresh) {
         input name: "appInterval",     type: "number", title: "Refresh the current application at least every n seconds.", range: 1..120, defaultValue: 60, required: true        
     }
-    input name: "autoManage",      type: "bool",   title: "Enable automatic management of child devices", defaultValue: true, required: true
+    input name: "autoManage",      type: "bool",   title: "Create Child Devices for Apps Buttons ect?", defaultValue: false, required: true
     if (autoManage) {
         input name: "manageApps",      type: "bool",   title: "Enable management of Roku installed Applications", defaultValue: true, required: true
         input name: "manageAppNames",      type: "text",   title: "Name of apps you want as a button. Partial or full app names seperated by a ','", defaultValue: "", required: true
-        input name: "hdmiPorts",       type: "enum",   title: "Number of HDMI inputs", options:["0","1","2","3","4"], defaultValue: "3", required: true
+        input name: "hdmiPorts",       type: "enum",   title: "Number of HDMI inputs", options:["0","1","2","3","4"], defaultValue: "0", required: true
         input name: "inputAV",         type: "bool",   title: "Enable AV Input", defaultValue: false, required: true
         input name: "inputTuner",      type: "bool",   title: "Enable Tuner Input", defaultValue: false, required: true
         input name: "buttonsEnabled",      type: "bool",   title: "Add Devices for Play,Home,Back, ect", defaultValue: false, required: true
@@ -106,7 +106,10 @@ def updated() {
  **/
 private def getChildrenInfo(Node body){
     def result = [];
-
+    if (!autoManage) {
+		return result
+    }
+    
     if (hdmiCount > 0 ) 
         (1..hdmiCount).each { i -> 
             result.add([netId :"hdmi${i}", appName:"HDMI ${i}",type:type_Input() ]) 
@@ -121,9 +124,6 @@ private def getChildrenInfo(Node body){
         if(shouldCheckNames){
             names = manageAppNames.split(",")
             shouldCheckNames = names && names.size() > 0 && names[0].size() > 0;
-            if(shouldCheckNames){
-                names.each { log.trace "Allowed: ${it}" }
-            }
         }
 
         body.app.each{ node ->
@@ -176,12 +176,7 @@ def type_Button(){ "Button"}
  
 	
 private def parseInstalledApps(Node body) {
-    
-    if (!autoManage) 
-		return
-	
-	def hdmiCount = hdmiPorts as int
-
+ 
     def childrenInfo = getChildrenInfo(body)
     state.childrenInfo = childrenInfo;
 	childDevices.each{ child ->
@@ -191,7 +186,6 @@ private def parseInstalledApps(Node body) {
             deleteChildDevice(child.deviceNetworkId)
         }
     }
-    if (logEnable) log.trace "Updating Child Count: ${childrenInfo.size()} "
 
     childrenInfo.each { item -> 
         
@@ -369,7 +363,7 @@ def refresh() {
     if (logEnable) log.trace "Executing 'refresh'"
     runInMillis(500, queryDeviceState)
     if (!appRefresh) runInMillis(500, queryCurrentApp)
-    if (autoManage)  runInMillis(500, queryInstalledApps)
+    runInMillis(500, queryInstalledApps)
 }
 
 /**

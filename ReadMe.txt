@@ -14,3 +14,5 @@ Optimized web calls to be async <- massive speed improvement on hubitat
 Added ability to use Child devices for Buttons
 Added Ability to filter out unwanted apps as devices
 
+Change log 1.1:
+Fixed bug with deleting child apps when turning them all off. 
